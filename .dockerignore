@@ -1,0 +1,19 @@
+# Secretos y entornos
+.env
+.venv/
+venv/
+
+# Caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Dev / no necesario en la imagen
+tests/
+ver_cargas.py
+explore.py
+smoke_test.py
+*.md
+.git/
+.gitignore
+.DS_Store
