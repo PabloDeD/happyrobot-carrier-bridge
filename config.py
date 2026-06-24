@@ -16,54 +16,54 @@ class Settings(BaseSettings):
     )
 
     # Legacy TMS (TCP socket)
-    tms_host: str = Field(..., description="Host del TMS legacy.")
-    tms_port: int = Field(..., description="Puerto del TMS legacy.")
-    tms_token: str = Field(..., description="Bearer token del TMS (secreto, nunca se loguea).")
-    tms_timeout: float = Field(8.0, description="Timeout por intento de socket (s).")
-    tms_retries: int = Field(3, description="Reintentos en lecturas ante faults inyectados.")
+    tms_host: str = Field(..., description="Legacy TMS host.")
+    tms_port: int = Field(..., description="Legacy TMS port.")
+    tms_token: str = Field(..., description="TMS bearer token (secret, never logged).")
+    tms_timeout: float = Field(8.0, description="Timeout per socket attempt (s).")
+    tms_retries: int = Field(3, description="Retries on reads when faults are injected.")
 
     # FMCSA (public REST)
-    fmcsa_api_key: str = Field("", description="webKey de la FMCSA QCMobile API.")
+    fmcsa_api_key: str = Field("", description="FMCSA QCMobile API webKey.")
     fmcsa_base_url: str = Field(
         "https://mobile.fmcsa.dot.gov/qc/services",
-        description="Base de la FMCSA QCMobile API.",
+        description="FMCSA QCMobile API base URL.",
     )
-    fmcsa_timeout: float = Field(10.0, description="Timeout de la llamada a FMCSA (s).")
+    fmcsa_timeout: float = Field(10.0, description="FMCSA call timeout (s).")
     fmcsa_mode: str = Field(
         "live",
-        description="live = QCMobile real (requiere IP US) · mock = verdict determinista "
-                    "para dev local (QCMobile geo-bloquea fuera de EE.UU.).",
+        description="live = real QCMobile (requires a US IP) · mock = deterministic verdict "
+                    "for local dev (QCMobile geo-blocks outside the US).",
     )
 
     # Bridge's own security: every operational route requires X-API-Key == bridge_api_key.
     bridge_api_key: str = Field(
-        "", description="API key que deben enviar los webhooks de la plataforma."
+        "", description="API key the platform's webhooks must send."
     )
 
     # Negotiation engine (dials; the real ceiling comes from the TMS)
-    neg_alpha: float = Field(0.08, description="Amplitud de concesión sobre el posted.")
-    neg_max_rounds: int = Field(3, description="Máx. de contraofertas (brief: 3).")
-    neg_step: int = Field(25, description="Redondeo de oferta ($) para que suene natural.")
+    neg_alpha: float = Field(0.08, description="Concession amplitude relative to the posted rate.")
+    neg_max_rounds: int = Field(3, description="Max counteroffers (brief: 3).")
+    neg_step: int = Field(25, description="Offer rounding ($) so it sounds natural.")
     neg_ttl_seconds: float = Field(
-        1800.0, description="TTL del estado de negociación (s): evita que un call_id reusado herede "
-                            "estado rancio (anti-ratchet con agreed_rate viejo)."
+        1800.0, description="Negotiation-state TTL (s): prevents a reused call_id from inheriting "
+                            "stale state (anti-ratchet with an old agreed_rate)."
     )
 
     # OTP (identity check via the platform's native SMS)
     otp_on_file_phone: str = Field(
-        "", description="Número 'registrado' del carrier (E.164, p.ej. +1...) al que va el OTP. "
-                        "Para la demo = el móvil de prueba; lo usa el nodo Send SMS."
+        "", description="Carrier's 'on-file' number (E.164, e.g. +1...) the OTP is sent to. "
+                        "For the demo = the test mobile; used by the Send SMS node."
     )
     otp_fixed_code: str = Field(
-        "482915", description="Código de TEST aceptado siempre (un caller SIMULADO no puede recibir "
-                              "un SMS real → así el suite adversarial pasa el gate). En prod se quita."
+        "482915", description="TEST code always accepted (a SIMULATED caller can't receive a real "
+                              "SMS → this lets the adversarial suite pass the gate). Removed in prod."
     )
-    otp_ttl_seconds: float = Field(600.0, description="Validez del código (s).")
-    otp_max_attempts: int = Field(3, description="Intentos antes de invalidar.")
+    otp_ttl_seconds: float = Field(600.0, description="Code validity (s).")
+    otp_max_attempts: int = Field(3, description="Attempts before invalidation.")
 
     # Meta
-    app_version: str = Field("1.0.0", description="Versión del Bridge.")
-    log_level: str = Field("INFO", description="Nivel de logging.")
+    app_version: str = Field("1.0.0", description="Bridge version.")
+    log_level: str = Field("INFO", description="Logging level.")
 
 
 @lru_cache

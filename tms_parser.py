@@ -41,11 +41,11 @@ def _split_fields(line: str) -> dict:
 def parse_response(raw: str) -> list[dict]:
     """Records as dicts with padding stripped. Raises TMSError / TMSPartial / TMSMalformed."""
     if not raw:
-        raise TMSPartial("respuesta vacía")
+        raise TMSPartial("empty response")
 
     lines = [ln for ln in raw.split("\r\n") if ln != ""]
     if not lines:
-        raise TMSPartial("respuesta sin líneas")
+        raise TMSPartial("response with no lines")
 
     # Single-line error
     if lines[0].startswith("ERR"):
@@ -54,7 +54,7 @@ def parse_response(raw: str) -> list[dict]:
 
     # Success must carry an END
     if "END" not in lines:
-        raise TMSPartial("sin terminador END (respuesta truncada)")
+        raise TMSPartial("no END terminator (truncated response)")
 
     records = []
     for ln in lines:
@@ -62,7 +62,7 @@ def parse_response(raw: str) -> list[dict]:
             break
         fields = _split_fields(ln)
         if not fields:
-            raise TMSMalformed(f"línea de record sin pares K:V válidos: {ln!r}")
+            raise TMSMalformed(f"record line with no valid K:V pairs: {ln!r}")
         records.append(fields)
     return records
 

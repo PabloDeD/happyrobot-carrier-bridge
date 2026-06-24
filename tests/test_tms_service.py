@@ -74,7 +74,7 @@ def test_fault_then_already_booked_is_treated_as_booked(monkeypatch):
     r = _svc().book_load("LD00324", "872144", 2200)
     assert r.status == "booked"          # our earlier BOOK did go through
     assert r.booking_ref is None         # but we lost the ref (truncated confirmation)
-    assert "truncada" in (r.reason or "")
+    assert "truncated" in (r.reason or "")
 
 
 def test_invalid_rate_is_rejected(monkeypatch):

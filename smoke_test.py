@@ -82,7 +82,7 @@ def main():
                    f"LOAD_GET {first_id}")
         if recs:
             nl = normalize_load(recs[0], include_max_buy=True)
-            print("   detalle:", nl.get("load_id"), "| posted", nl.get("posted_rate"),
+            print("   detail:", nl.get("load_id"), "| posted", nl.get("posted_rate"),
                   "| MAX_BUY", nl.get("max_buy"), "| notes:", (nl.get("notes") or "")[:60])
 
 

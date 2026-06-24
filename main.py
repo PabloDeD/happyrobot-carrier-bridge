@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
     app.state.otp_store = OTPStore(
         ttl_seconds=settings.otp_ttl_seconds, max_attempts=settings.otp_max_attempts,
     )
-    logging.getLogger("bridge").info("Bridge v%s arriba (TMS %s:%s).",
+    logging.getLogger("bridge").info("Bridge v%s up (TMS %s:%s).",
                                      settings.app_version, settings.tms_host, settings.tms_port)
     yield
 
@@ -69,7 +69,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="HappyRobot Bridge",
     version="1.0.0",
-    summary="REST ↔ Legacy TMS · FMCSA · motor de negociación con techo blindado.",
+    summary="REST ↔ Legacy TMS · FMCSA · negotiation engine with a sealed ceiling.",
     lifespan=lifespan,
 )
 
@@ -79,9 +79,9 @@ async def require_api_key(
     settings: Settings = Depends(get_settings),
 ) -> None:
     if not settings.bridge_api_key:
-        raise HTTPException(status_code=500, detail="BRIDGE_API_KEY no configurada en el servidor.")
+        raise HTTPException(status_code=500, detail="BRIDGE_API_KEY not configured on the server.")
     if x_api_key != settings.bridge_api_key:
-        raise HTTPException(status_code=401, detail="API key inválida o ausente.")
+        raise HTTPException(status_code=401, detail="Invalid or missing API key.")
 
 
 # Map TMS error codes to HTTP status.
@@ -195,12 +195,12 @@ async def search_loads(req: LoadSearchRequest, request: Request) -> LoadSearchRe
     has_filter = any(v for k, v in filters.items() if k != "MAX_RESULTS")
     if not has_filter:
         logging.getLogger("bridge").warning(
-            "search sin filtros — recibido: origin=%r destination=%r equipment_type=%r "
+            "search with no filters — received: origin=%r destination=%r equipment_type=%r "
             "pickup_date=%r structured=%r",
             req.origin, req.destination, req.equipment_type, req.pickup_date,
             (req.origin_city, req.origin_state, req.dest_city, req.dest_state),
         )
-        raise HTTPException(status_code=400, detail="Se requiere al menos un filtro (lane o equipo).")
+        raise HTTPException(status_code=400, detail="At least one filter is required (lane or equipment).")
 
     logging.getLogger("bridge").info("SEARCH → TMS filters: %r", {k: v for k, v in filters.items() if v})
     tms: TMSService = request.app.state.tms
@@ -213,7 +213,7 @@ async def search_loads(req: LoadSearchRequest, request: Request) -> LoadSearchRe
     had_orig = bool(filters.get("ORIG_CITY") or filters.get("ORIG_STATE"))
     if not loads and had_dest and had_orig:
         relaxed = {k: v for k, v in filters.items() if k not in ("DEST_CITY", "DEST_STATE")}
-        logging.getLogger("bridge").info("SEARCH relajando destino → %r", {k: v for k, v in relaxed.items() if v})
+        logging.getLogger("bridge").info("SEARCH relaxing destination → %r", {k: v for k, v in relaxed.items() if v})
         loads = await asyncio.to_thread(tms.query_loads, relaxed)
         if loads:
             lane_match = "origin"
@@ -234,7 +234,7 @@ async def get_load(load_id: str, request: Request) -> Load:
     tms: TMSService = request.app.state.tms
     detail = await asyncio.to_thread(tms.get_load, load_id, False)   # include_max_buy=False: agent-facing
     if detail is None:
-        raise HTTPException(status_code=404, detail="Carga no encontrada.")
+        raise HTTPException(status_code=404, detail="Load not found.")
     return Load(**detail)
 
 
@@ -251,9 +251,9 @@ async def negotiate(req: NegotiateRequest, request: Request) -> NegotiateRespons
         # First contact with this load: fetch posted + max_buy (the ceiling) once.
         detail = await asyncio.to_thread(tms.get_load, req.load_id, True)   # include_max_buy=True
         if detail is None:
-            raise HTTPException(status_code=404, detail="Carga no encontrada.")
+            raise HTTPException(status_code=404, detail="Load not found.")
         if detail.get("max_buy") is None:
-            raise HTTPException(status_code=502, detail="El TMS no expuso el techo para esta carga.")
+            raise HTTPException(status_code=502, detail="The TMS did not expose the ceiling for this load.")
         state = NegotiationState(posted=float(detail["posted_rate"]), max_buy=float(detail["max_buy"]))
 
     has_deal = state.agreed_rate is not None
@@ -306,17 +306,17 @@ async def book(req: BookRequest, request: Request) -> BookResponse:
     else:
         detail = await asyncio.to_thread(tms.get_load, req.load_id, True)
         if detail is None:
-            raise HTTPException(status_code=404, detail="Carga no encontrada.")
+            raise HTTPException(status_code=404, detail="Load not found.")
         ceiling = float(detail["max_buy"]) if detail.get("max_buy") is not None else None
         agreed = None
 
     eps = 0.5
     # Guard 1 (defense in depth): never above the ceiling.
     if ceiling is not None and req.agreed_rate > ceiling + eps:
-        raise HTTPException(status_code=422, detail="Tarifa no permitida para esta carga.")
+        raise HTTPException(status_code=422, detail="Rate not allowed for this load.")
     # Guard 2: never book above what was actually negotiated on this call.
     if agreed is not None and req.agreed_rate > agreed + eps:
-        raise HTTPException(status_code=422, detail="La tarifa supera lo acordado en la negociación.")
+        raise HTTPException(status_code=422, detail="The rate exceeds what was agreed in the negotiation.")
 
     result = await asyncio.to_thread(tms.book_load, req.load_id, req.mc_number, req.agreed_rate)
     # Terminal outcome for this load (booked / already_booked / rejected): clear the negotiation

@@ -81,12 +81,12 @@ class TMSService:
                 if exc.code in _FATAL_READ_CODES:
                     raise                   # deterministic (missing / auth) — don't retry
                 last = exc                  # spurious injected ERR — retry
-                log.info("%s ERR transitorio (%s), reintento %d/%d", cmd, exc.code,
+                log.info("%s transient ERR (%s), retry %d/%d", cmd, exc.code,
                          attempt + 1, self._retries)
                 time.sleep(self._backoff(attempt))
             except _FAULTS as exc:
                 last = exc
-                log.info("%s fault (%s), reintento %d/%d", cmd, type(exc).__name__,
+                log.info("%s fault (%s), retry %d/%d", cmd, type(exc).__name__,
                          attempt + 1, self._retries)
                 time.sleep(self._backoff(attempt))
         assert last is not None
@@ -113,7 +113,7 @@ class TMSService:
         except _FAULTS as exc:
             return False, type(exc).__name__
         ok = bool(recs) and recs[0].get("AUTH") == "OK"
-        return ok, "AUTH:OK" if ok else "respuesta inesperada de DEBUG_ECHO"
+        return ok, "AUTH:OK" if ok else "unexpected DEBUG_ECHO response"
 
     def book_load(self, load_id: str, mc_number: str, agreed_rate: float) -> BookResult:
         """
@@ -146,31 +146,31 @@ class TMSService:
                         # An earlier BOOK of ours did land; its confirmation just came back truncated.
                         result = BookResult(
                             status="booked", load_id=load_id, agreed_rate=agreed_rate,
-                            reason="Reservado; referencia no disponible (confirmación truncada del TMS).",
+                            reason="Booked; reference unavailable (truncated TMS confirmation).",
                         )
                     else:
                         result = BookResult(
                             status="already_booked", load_id=load_id, agreed_rate=agreed_rate,
-                            reason="La carga ya estaba reservada en este token.",
+                            reason="The load was already booked on this token.",
                         )
                     return self._remember(load_id, result)
                 if exc.code == "INVALID_RATE":
                     return BookResult("rejected", load_id, agreed_rate,
-                                      reason="El TMS rechazó la tarifa (INVALID_RATE).")
+                                      reason="The TMS rejected the rate (INVALID_RATE).")
                 if exc.code == "UNKNOWN_LOAD":
-                    return BookResult("rejected", load_id, agreed_rate, reason="Carga inexistente.")
+                    return BookResult("rejected", load_id, agreed_rate, reason="Load does not exist.")
                 return BookResult("rejected", load_id, agreed_rate, reason=f"{exc.code}: {exc.msg}")
 
             except _FAULTS as exc:
                 last_fault = exc
                 attempted = True               # request went out: the booking may have landed
-                log.info("LOAD_BOOK fault (%s), reintento %d/%d", type(exc).__name__,
+                log.info("LOAD_BOOK fault (%s), retry %d/%d", type(exc).__name__,
                          attempt + 1, self._retries)
                 time.sleep(self._backoff(attempt))
 
         return BookResult("rejected", load_id, agreed_rate,
-                          reason=f"TMS inalcanzable tras {self._retries} intentos "
-                                 f"({type(last_fault).__name__ if last_fault else 'desconocido'}).")
+                          reason=f"TMS unreachable after {self._retries} attempts "
+                                 f"({type(last_fault).__name__ if last_fault else 'unknown'}).")
 
     def _remember(self, load_id: str, result: BookResult) -> BookResult:
         with self._lock:

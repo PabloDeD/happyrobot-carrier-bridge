@@ -34,12 +34,12 @@ def encode_request(cmd: str, auth: str, fields: dict | None = None) -> bytes:
             continue
         v = str(v)
         if "|" in v or "\r" in v or "\n" in v:
-            raise ValueError(f"el valor de {k} no puede contener '|' ni saltos de línea")
+            raise ValueError(f"the value of {k} cannot contain '|' or line breaks")
         parts.append(f"{k}:{v}")
     line = "|".join(parts) + "\r\n"
     payload = line.encode("ascii")
     if len(payload) > MAX_FRAME:
-        raise ValueError(f"request excede el frame de {MAX_FRAME} bytes")
+        raise ValueError(f"request exceeds the {MAX_FRAME}-byte frame")
     return payload
 
 
@@ -75,6 +75,6 @@ def send_request(host: str, port: int, cmd: str, auth: str,
                     break
         except socket.timeout:
             if not buf:
-                raise TMSTimeout("sin respuesta dentro del timeout (posible fault de timeout)")
+                raise TMSTimeout("no response within the timeout (possible timeout fault)")
             # Timed out with partial data: hand back what we have; the parser will flag it as partial.
     return buf.decode("ascii", errors="replace")
