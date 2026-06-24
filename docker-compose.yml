@@ -1,10 +1,10 @@
-# Deploy de un solo comando:  docker compose up --build -d
+# Single-command deploy:  docker compose up --build -d
 services:
   bridge:
     build: .
     image: happyrobot-bridge:latest
     container_name: happyrobot-bridge
-    env_file: .env          # secretos fuera de la imagen (gitignored)
+    env_file: .env          # secrets stay out of the image (gitignored)
     ports:
       - "8000:8000"
     restart: unless-stopped

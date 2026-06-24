@@ -1,4 +1,4 @@
-# Secretos y entornos
+# Secrets and local environments
 .env
 .venv/
 venv/
@@ -8,12 +8,12 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# Dev / no necesario en la imagen
+# Dev-only — not needed in the runtime image
 tests/
-ver_cargas.py
-explore.py
 smoke_test.py
+qa_negotiation.py
 *.md
+.github/
 .git/
 .gitignore
 .DS_Store

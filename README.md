@@ -1,5 +1,10 @@
 # HappyRobot Bridge
 
+[![CI](https://github.com/PabloDeD/happyrobot-carrier-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/PabloDeD/happyrobot-carrier-bridge/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white)](./Dockerfile)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
+
 > Integration layer between the HappyRobot voice agent (**Sam**) and the broker's
 > back-office systems: the **Legacy TMS** (raw TCP socket) and **FMCSA** (carrier
 > authority). It also hosts the **deterministic negotiation engine** that enforces the
@@ -11,7 +16,7 @@
   │ verify_carrier        │──────────────▶│ POST /verify-carrier │───────▶│   FMCSA     │
   │ search_loads          │──────────────▶│ POST /loads/search   │        │  (QCMobile) │
   │ get_load_details      │──────────────▶│ GET  /loads/{id}     │        └─────────────┘
-  │ evaluate_offer        │──────────────▶│ POST /negotiate ◀─── techo (max_buy) server-side
+  │ evaluate_offer        │──────────────▶│ POST /negotiate ◀─── ceiling (max_buy) server-side
   │ book_load             │──────────────▶│ POST /book           │───────▶┌─────────────┐
   └───────────────────────┘               │ GET  /health         │  TCP   │ Legacy TMS  │
                                           └──────────────────────┘        │ (sockets)   │
@@ -118,7 +123,6 @@ docker compose up --build
 ```
 
 Smoke-test the live TMS connection without the API: `python smoke_test.py`.
-Browse the load board by hand: `python ver_cargas.py` (list) / `python ver_cargas.py LD00324` (detail).
 
 ## Tests
 
@@ -152,16 +156,17 @@ to this service, see [`WEBHOOKS.md`](./WEBHOOKS.md).
 ## Layout
 
 ```
-bridge/
+.
 ├── main.py            FastAPI app: routes, auth, TMS-error→HTTP handlers
 ├── config.py          settings (pydantic-settings, 12-factor)
 ├── models.py          request/response contracts (none exposes max_buy)
-├── negotiation.py     pure decide() + per-call state store
+├── negotiation.py     pure decide() + per-call state store (TTL)
 ├── tms_service.py     retries/backoff + booking idempotency over the socket
 ├── tms_client.py      raw TCP client (one request per connection, fault-aware)
 ├── tms_parser.py      response parser + normalize_load (omits max_buy)
 ├── fmcsa.py           QCMobile proxy + mock mode
-├── tests/             pytest suite (42)
-├── Dockerfile · docker-compose.yml · requirements.txt
-└── smoke_test.py · explore.py · ver_cargas.py   (manual TMS exploration)
+├── otp.py             server-side OTP store (single-use, TTL, lockout)
+├── tests/             pytest suite (65)
+├── Dockerfile · docker-compose.yml · railway.json · requirements.txt
+└── smoke_test.py · qa_negotiation.py   (manual TMS smoke test · negotiation checks)
 ```
